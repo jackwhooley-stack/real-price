@@ -72,7 +72,11 @@
     else el.innerHTML = settings.zip ? 'That ZIP is not a US state or DC. Enter your rate instead.' : 'Add a US ZIP, or type the rate you actually pay. Until then tax is 0%.';
   }
   function mark(id, attr, val) {
-    Array.prototype.forEach.call($(id).querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute(attr) === val); });
+    Array.prototype.forEach.call($(id).querySelectorAll('button'), function (b) {
+      var on = b.getAttribute(attr) === val;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
   function refreshAll() { renderChips(); renderSettings(); renderOverlays(); renderTotals(); }
 
@@ -161,7 +165,7 @@
     detections.forEach(function (d) {
       var r = RP.realPrice(d.cents, t.rate, settings.mode, settings.tip);
       var bh = (d.bbox.y1 - d.bbox.y0) * cr.scale, bw = (d.bbox.x1 - d.bbox.x0) * cr.scale;
-      var h = Math.max(bh * 1.15, 34), fs = Math.max(14, Math.min(28, bh * 0.7));
+      var h = Math.max(bh * 1.15, 44), fs = Math.max(14, Math.min(28, bh * 0.7));
       var w = Math.max(bw * 1.15, 64);
       var cx = cr.x + ((d.bbox.x0 + d.bbox.x1) / 2) * cr.scale, cy = cr.y + ((d.bbox.y0 + d.bbox.y1) / 2) * cr.scale;
       var el = document.createElement('div');
@@ -206,7 +210,7 @@
   function setMsg(m) { var el = $('stageMsg'); el.textContent = m || ''; el.hidden = !m; }
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setMsg('Camera is not available here.\nTap Take photo to use a picture.'); return false;
+      setMsg('This browser has no camera.\nChoose a photo instead.'); return false;
     }
     var attempts = [
       { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
@@ -222,7 +226,7 @@
     if (!stream) {
       cameraOK = false;
       var why = err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : err && err.name === 'NotFoundError' ? 'No camera found.' : 'Camera could not start.';
-      setMsg(why + '\nTap Take photo to use a picture.'); return false;
+      setMsg(why + '\nChoose a photo instead.'); return false;
     }
     video.playsInline = true; video.muted = true;
     video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');

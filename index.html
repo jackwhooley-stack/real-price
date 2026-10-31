@@ -17,7 +17,7 @@
 <body>
 <header id="topbar">
   <div class="title-row">
-    <div class="brand"><img class="logo" src="icons/logo.png" alt="">Real Price</div>
+    <div class="brand lockup"><img class="logo" src="icons/logo.png" alt=""><span class="wordmark">Real Price</span></div>
     <button id="btnSettings" class="icon-btn" aria-label="Settings">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
@@ -44,7 +44,8 @@
   <div id="toast" class="toast" hidden></div>
 </main>
 
-<p id="hint" class="hint">Point at a price. <b>Hold</b> a tag to add it. Tap for the breakdown.</p>
+<p id="hint" class="hint">Hold a price to add it. Tap a price for the breakdown.</p>
+<p class="trust">Calculated on this phone. Nothing is uploaded.</p>
 
 <footer id="controls">
   <button id="btnPhoto" class="btn ghost" type="button">
@@ -68,7 +69,7 @@
     <div class="sheet-head"><h2>Settings</h2><button class="icon-btn" data-close aria-label="Close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
 
     <section class="card">
-      <h3>Where you are</h3>
+      <h3>Mode</h3>
       <div class="seg" id="modeSeg">
         <button type="button" data-mode="store">Store</button>
         <button type="button" data-mode="restaurant">Restaurant</button>
@@ -94,7 +95,7 @@
         <button type="button" data-src="state">State only</button>
       </div>
       <label class="field">Your rate, if you know it
-        <input id="manualRate" inputmode="decimal" placeholder="8.625">
+        <input id="manualRate" inputmode="decimal" placeholder="Optional" aria-describedby="taxInfo">
       </label>
       <div id="taxInfo" class="taxinfo"></div>
       <p class="note">State rate plus a population-weighted average local rate (Tax Foundation, midyear 2026). City and county rates differ, and some places tax meals or groceries differently. Type your own rate to override the ZIP.</p>
@@ -115,7 +116,10 @@
     <div class="grabber"></div>
     <div class="sheet-head"><h2>Running total</h2><button class="icon-btn" data-close aria-label="Close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
     <ul id="itemList" class="items"></ul>
-    <div id="emptyMsg" class="note" hidden>Nothing yet. Hold a price on the camera to add it.</div>
+    <div id="emptyMsg" class="empty" hidden>
+      <p class="empty-title">Nothing in the total yet</p>
+      <p class="note">Hold a price on the camera, or type one below.</p>
+    </div>
     <form id="addForm" class="addrow">
       <input id="addPrice" inputmode="decimal" placeholder="Add a price, like 7.50" aria-label="Manual price">
       <button class="btn ghost small" type="submit">Add</button>

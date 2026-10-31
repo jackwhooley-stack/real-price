@@ -9,7 +9,8 @@
   --bg: #f5f7f8;
   --card: #ffffff;
   --ink: #1f2426;
-  --muted: #69757a;
+  --muted: #5a666a;
+  --green-ink: #146628;
   --line: #d5d9db;
   --line-soft: #e8eced;
   --blue: #0073b9;
@@ -38,6 +39,7 @@ body {
   color-scheme: light;
 }
 button, input { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 [hidden] { display: none !important; }
 #topbar {
   display: flex; flex-direction: column; gap: 8px;
@@ -46,13 +48,14 @@ button, input { font: inherit; color: inherit; }
   border-bottom: 1px solid var(--line-soft);
 }
 .title-row { display: flex; align-items: center; gap: 8px; min-height: 32px; }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px; letter-spacing: -0.02em; margin-right: auto; }
+.brand { display: flex; align-items: center; gap: 8px; margin-right: auto; min-height: 44px; }
+.wordmark { font-weight: 600; font-size: 17px; letter-spacing: -0.02em; line-height: 1; }
 .logo { width: 32px; height: 32px; display: block; flex: none; border-radius: var(--r); }
 .toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .loc {
   flex: none;
   display: inline-flex; align-items: center; gap: 4px;
-  height: 32px; padding: 0 4px; border: 0; border-radius: var(--r);
+  min-height: 44px; padding: 0 8px; border: 0; border-radius: var(--r);
   background: transparent; color: var(--muted);
   font-size: 13px; font-weight: 600; line-height: 1;
 }
@@ -61,10 +64,11 @@ button, input { font: inherit; color: inherit; }
 .loc.unset { color: var(--blue); }
 .loc:active { background: var(--line-soft); }
 .icon-btn {
-  width: 32px; height: 32px; border: 0; border-radius: var(--r);
+  width: 44px; height: 44px; border: 0; border-radius: var(--r);
   background: transparent; color: var(--ink);
   display: inline-flex; align-items: center; justify-content: center; padding: 0;
 }
+.icon-btn .icon { width: 22px; height: 22px; }
 .icon-btn:active { background: var(--line-soft); }
 #stage {
   position: relative; flex: 1; min-height: 0;
@@ -118,10 +122,11 @@ button, input { font: inherit; color: inherit; }
 .pill.open .detail { display: block; }
 .pill.pressing { outline: 3px solid var(--green); }
 .pill.added { background: var(--green); color: #fff; }
-.hint {
+.hint, .trust {
   margin: 8px calc(16px + var(--safe-r)) 0 calc(16px + var(--safe-l));
   font-size: 13px; font-weight: 400; color: var(--muted); text-align: center; line-height: 1.4;
 }
+.trust { margin-top: 4px; }
 .hint b { color: var(--ink); font-weight: 600; }
 #controls {
   display: flex; gap: 8px; align-items: stretch;
@@ -149,8 +154,8 @@ button, input { font: inherit; color: inherit; }
 #totalBadge { font-size: 20px; font-weight: 700; color: var(--green); letter-spacing: -0.02em; }
 .count {
   min-width: 28px; height: 28px; padding: 0 8px; border-radius: 999px;
-  background: var(--green-wash); color: var(--green);
-  font-size: 13px; font-weight: 800;
+  background: var(--green-wash); color: var(--green-ink);
+  font-size: 13px; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .sheet {
@@ -168,14 +173,14 @@ h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .card { background: var(--card); border-radius: var(--r-lg); padding: 16px; margin: 8px 0; box-shadow: var(--shadow); }
 .card h3:not(:first-child) { margin-top: 16px; }
-.seg { display: flex; gap: 0; background: var(--line-soft); padding: 2px; border-radius: var(--r); min-height: 32px; }
+.seg { display: flex; gap: 0; background: var(--line-soft); padding: 2px; border-radius: var(--r); min-height: 48px; }
 .header-seg, #modeSwitch { flex: 1; min-width: 0; }
 .seg button {
-  flex: 1; min-width: 0; background: transparent; border: 0; border-radius: 6px;
-  padding: 6px 8px; font-size: 13px; font-weight: 600; color: var(--muted);
+  flex: 1; min-width: 0; min-height: 44px; background: transparent; border: 0; border-radius: 6px;
+  padding: 8px; font-size: 13px; font-weight: 600; color: var(--muted);
 }
 .seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(31, 36, 38, 0.12); }
-.field { display: block; margin: 12px 0 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+.field { display: block; margin: 16px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
 .field input, .addrow input {
   width: 100%; margin-top: 8px; background: var(--bg); border: 1px solid var(--line);
   border-radius: var(--r-md); padding: 12px; font-size: 16px; font-weight: 500; color: var(--ink);
@@ -197,10 +202,10 @@ h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
   padding: 8px; text-align: right; font-weight: 800; font-size: 16px;
 }
 .items .real { font-size: 13px; color: var(--muted); grid-column: 1 / -1; font-weight: 600; }
-.items .real b { color: var(--green); }
+.items .real b { color: var(--green-ink); }
 .qtybox { display: flex; align-items: center; gap: 4px; font-weight: 700; }
-.qtybox button { width: 32px; height: 32px; border-radius: var(--r); border: 1px solid var(--line); background: var(--bg); font-weight: 600; }
-.del { background: transparent; color: var(--red-deep); border: 0; border-radius: var(--r); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.qtybox button { width: 44px; height: 44px; border-radius: var(--r); border: 1px solid var(--line); background: var(--bg); font-weight: 600; }
+.del { background: transparent; color: var(--red-deep); border: 0; border-radius: var(--r); width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 .del .icon { width: 18px; height: 18px; }
 .addrow { display: flex; gap: 8px; align-items: center; }
 .addrow input { margin: 0; flex: 1; }
@@ -210,6 +215,8 @@ h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .sums dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sums .grand { border-top: 1px solid var(--line-soft); margin-top: 6px; padding-top: 10px; }
 .sums .grand dt, .sums .grand dd { color: var(--green); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.empty-title { margin: 8px 0 0; font-size: 16px; font-weight: 600; }
+.empty .note { margin-top: 4px; }
 .row { display: flex; gap: 8px; }
 .row .btn { flex: 1; }
 #btnClearAll { width: 100%; margin-top: 12px; }
