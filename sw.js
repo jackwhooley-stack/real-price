@@ -1,6 +1,6 @@
 /* Real Price service worker. OCR assets are NOT intercepted: iOS Safari fails
    importScripts() of the Tesseract worker/wasm when a service worker responds. */
-const VERSION = 'rp-v3';
+const VERSION = 'rp-v4';
 const SHELL = ['./', 'index.html', 'style.css', 'js/logic.js', 'js/app.js', 'manifest.json',
   'favicon.ico', 'icons/favicon-32.png', 'icons/logo.png', 'icons/apple-touch-icon.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',

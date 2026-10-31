@@ -16,12 +16,22 @@
 </head>
 <body>
 <header id="topbar">
-  <div class="brand"><img class="logo" src="icons/logo.png" alt="">Real Price</div>
-  <button id="chipMode" class="chip mode" aria-label="Toggle store or restaurant mode">Store</button>
-  <button id="chipTax" class="chip" aria-label="Open settings">Add ZIP</button>
-  <button id="btnSettings" class="icon-btn" aria-label="Settings">
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.8 7.8 0 0 0 .1-1 7.8 7.8 0 0 0-.1-1l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7.4 7.4 0 0 0-1.7-1l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1a.5.5 0 0 0-.6.2L2.4 8.8a.5.5 0 0 0 .1.6L4.5 11a7.8 7.8 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3a.5.5 0 0 0 .6.2l2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg>
-  </button>
+  <div class="title-row">
+    <div class="brand"><img class="logo" src="icons/logo.png" alt="">Real Price</div>
+    <button id="btnSettings" class="icon-btn" aria-label="Settings">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+  <div class="toolbar">
+    <div class="seg" id="modeSwitch" role="group" aria-label="Store or restaurant">
+      <button type="button" data-mode="store">Store</button>
+      <button type="button" data-mode="restaurant">Restaurant</button>
+    </div>
+    <button id="chipTax" class="loc unset" type="button" aria-label="Sales tax location">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+      <span id="locLabel">Set ZIP</span>
+    </button>
+  </div>
 </header>
 
 <main id="stage">
@@ -37,7 +47,11 @@
 <p id="hint" class="hint">Point at a price. <b>Hold</b> a tag to add it. Tap for the breakdown.</p>
 
 <footer id="controls">
-  <button id="btnPhoto" class="btn ghost" type="button">Photo</button>
+  <button id="btnPhoto" class="btn ghost" type="button">
+    <svg class="icon" id="photoIconCam" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+    <svg class="icon" id="photoIconLive" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+    <span id="photoLabel">Take photo</span>
+  </button>
   <input id="fileInput" type="file" accept="image/*" hidden>
   <button id="btnTotal" class="btn total" type="button">
     <span class="total-copy">
@@ -51,7 +65,7 @@
 <section id="settings" class="sheet" hidden aria-label="Settings">
   <div class="sheet-body">
     <div class="grabber"></div>
-    <div class="sheet-head"><h2>Settings</h2><button class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div class="sheet-head"><h2>Settings</h2><button class="icon-btn" data-close aria-label="Close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
 
     <section class="card">
       <h3>Where you are</h3>
@@ -99,7 +113,7 @@
 <section id="totalPanel" class="sheet" hidden aria-label="Running total">
   <div class="sheet-body">
     <div class="grabber"></div>
-    <div class="sheet-head"><h2>Running total</h2><button class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div class="sheet-head"><h2>Running total</h2><button class="icon-btn" data-close aria-label="Close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
     <ul id="itemList" class="items"></ul>
     <div id="emptyMsg" class="note" hidden>Nothing yet. Hold a price on the camera to add it.</div>
     <form id="addForm" class="addrow">

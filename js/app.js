@@ -44,10 +44,17 @@
   /* ---------- header chips / settings ---------- */
   function renderChips() {
     var t = tax();
-    $('chipMode').textContent = settings.mode === 'restaurant' ? 'Dining · ' + settings.tip + '%' : 'Store';
-    $('chipTax').textContent = t.source === 'none' ? 'Add ZIP' : trimPct(t.percent) + '% tax';
-    $('chipTax').style.color = t.source === 'none' ? '#9a6700' : '';
-    $('chipTax').style.borderColor = t.source === 'none' ? '#fcd214' : '';
+    mark('modeSwitch', 'data-mode', settings.mode);
+    var label = $('locLabel'), btn = $('chipTax');
+    if (t.source === 'none') {
+      label.textContent = 'Set ZIP';
+      btn.classList.add('unset');
+    } else {
+      btn.classList.remove('unset');
+      var zip = String(settings.zip || '').replace(/\s+/g, '');
+      var pct = trimPct(t.percent) + '% tax';
+      label.textContent = zip ? ('ZIP ' + zip + ' · ' + pct) : ('Manual · ' + pct);
+    }
   }
   function trimPct(p) { return String(Math.round(p * 1000) / 1000); }
 
@@ -74,8 +81,9 @@
   Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (b) { b.addEventListener('click', closeSheets); });
   ['settings', 'totalPanel'].forEach(function (id) { $(id).addEventListener('click', function (e) { if (e.target === $(id)) closeSheets(); }); });
   $('btnSettings').onclick = $('chipTax').onclick = function () { renderSettings(); openSheet('settings'); };
-  $('chipMode').onclick = function () { settings.mode = settings.mode === 'store' ? 'restaurant' : 'store'; saveSettings(); refreshAll(); };
-  $('modeSeg').addEventListener('click', function (e) { var m = e.target.getAttribute('data-mode'); if (m) { settings.mode = m; saveSettings(); refreshAll(); } });
+  function setMode(m) { if (!m) return; settings.mode = m; saveSettings(); refreshAll(); }
+  $('modeSwitch').addEventListener('click', function (e) { var b = e.target.closest('button'); setMode(b && b.getAttribute('data-mode')); });
+  $('modeSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); setMode(b && b.getAttribute('data-mode')); });
   $('tipSeg').addEventListener('click', function (e) { var m = e.target.getAttribute('data-tip'); if (m) { settings.tip = Number(m); saveSettings(); refreshAll(); } });
   $('srcSeg').addEventListener('click', function (e) { var m = e.target.getAttribute('data-src'); if (m) { settings.rateSource = m; saveSettings(); refreshAll(); } });
   $('zip').addEventListener('input', function () { settings.zip = this.value.trim(); saveSettings(); renderChips(); renderSettingsInfoOnly(); renderOverlays(); renderTotals(); });
@@ -111,7 +119,7 @@
       var rp = RP.realPrice(it.price * it.qty, t.rate, settings.mode, settings.tip);
       li.innerHTML = '<div class="price"><span>$</span><input class="p" inputmode="decimal" aria-label="Price" value="' + (it.price / 100).toFixed(2) + '"></div>' +
         '<div class="qtybox"><button type="button" data-act="dec" aria-label="Less">−</button><span>×' + it.qty + '</span><button type="button" data-act="inc" aria-label="More">+</button></div>' +
-        '<button class="del" type="button" data-act="del" aria-label="Remove item">✕</button>' +
+        '<button class="del" type="button" data-act="del" aria-label="Remove item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>' +
         '<div class="real">Item ' + (idx + 1) + ' · <b>' + RP.fmt(rp.total) + '</b> with tax' + (settings.mode === 'restaurant' ? ' and tip' : '') + '</div>';
       ul.appendChild(li);
     });
@@ -198,7 +206,7 @@
   function setMsg(m) { var el = $('stageMsg'); el.textContent = m || ''; el.hidden = !m; }
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setMsg('Camera is not available here.\nUse Photo to pick a picture.'); return false;
+      setMsg('Camera is not available here.\nTap Take photo to use a picture.'); return false;
     }
     var attempts = [
       { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
@@ -214,7 +222,7 @@
     if (!stream) {
       cameraOK = false;
       var why = err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : err && err.name === 'NotFoundError' ? 'No camera found.' : 'Camera could not start.';
-      setMsg(why + '\nUse Photo to pick a picture.'); return false;
+      setMsg(why + '\nTap Take photo to use a picture.'); return false;
     }
     video.playsInline = true; video.muted = true;
     video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
@@ -448,7 +456,7 @@
   async function loadFile(file) {
     if (!file) return;
     live = false; viewingPhoto = true;
-    $('btnPhoto').textContent = 'Camera';
+    setPhotoLabel(true);
     try {
       setOcrStatus('loading', 'Opening photo…');
       var bmp = await decodeImage(file);
@@ -481,10 +489,15 @@
       } else viaImage();
     });
   }
+  function setPhotoLabel(viewing) {
+    $('photoLabel').textContent = viewing ? 'Camera' : 'Take photo';
+    $('photoIconCam').hidden = viewing;
+    $('photoIconLive').hidden = !viewing;
+  }
   $('fileInput').addEventListener('change', function () { var f = this.files && this.files[0]; this.value = ''; if (f) loadFile(f); });
   $('btnPhoto').onclick = function () { if (viewingPhoto) resumeCamera(); else $('fileInput').click(); };
   async function resumeCamera() {
-    viewingPhoto = false; frame.classList.remove('show'); $('btnPhoto').textContent = 'Photo';
+    viewingPhoto = false; frame.classList.remove('show'); setPhotoLabel(false);
     detections = []; renderOverlays(); video.hidden = false;
     var ok = cameraOK && stream;
     if (!ok) ok = await startCamera();
