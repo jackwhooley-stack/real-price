@@ -94,7 +94,8 @@
 
   /* ---------- Price detection ---------- */
   // optional currency mark ($, or S/§ that OCR often reads for $), digits with optional thousands commas, optional 2-digit cents
-  var PRICE_RE = /^([$S§]?)(\d{1,3}(?:,\d{3})+|\d+)(?:([.,])(\d{2}))?$/;
+  var PRICE_RE = /^([$€£¥S§]?)(\d{1,3}(?:,\d{3})+|\d+)(?:([.,])(\d{2}))?$/;
+  var TRAIL_RE = /^(\d{1,3}(?:,\d{3})+|\d+)(?:([.,])(\d{2}))?([$€£¥])$/;
 
   function cleanToken(t) {
     return String(t || '').replace(/^[\s.,;:'"`*_\-~|()\[\]{}<>=·•\u2026]+/, '').replace(/[\s.,;:'"`*_\-~|()\[\]{}<>=·•\u2026]+$/, '');
@@ -105,10 +106,12 @@
     var t = cleanToken(raw);
     if (!t) return null;
     var m = PRICE_RE.exec(t);
+    var trailing = false;
+    if (!m && (m = TRAIL_RE.exec(t))) { trailing = true; }
     if (!m) return null;
-    var sym = m[1], whole = m[2], sep = m[3], dec = m[4];
+    var sym = trailing ? m[4] : m[1], whole = trailing ? m[1] : m[2], sep = trailing ? m[2] : m[3], dec = trailing ? m[3] : m[4];
     // 'S' only counts as a $ when followed by digits and not a plain word (regex already ensures digits follow)
-    var hasSymbol = sym === '$' || ((sym === 'S' || sym === '§') && (!!dec || whole.length <= 3));
+    var hasSymbol = sym === '$' || sym === '€' || sym === '£' || sym === '¥' || ((sym === 'S' || sym === '§') && (!!dec || whole.length <= 3));
     if (sym === 'S' && !hasSymbol) return null;
     if (sep === ',' && !dec) return null;
     // "1,299" style: whole has commas -> fine; "12,99" has sep ',' with dec -> European style cents
@@ -134,17 +137,18 @@
     for (var i = 0; i < words.length; i++) {
       var w = words[i];
       if (!w || !w.text || !w.bbox) continue;
-      var conf = w.confidence != null ? w.confidence : 100;
+      /* Tesseract reports 0 when a whitelist pass didn't score the word. A real price shape still counts. */
+      var conf = w.confidence > 0 ? w.confidence : (w.confidence === 0 ? 55 : 100);
       var p = null;
       var bbox = w.bbox;
       // OCR sometimes splits "$9.49" into "$9." + "49"
-      if (/^[$S§]?\d{1,3}[.,]$/.test(String(w.text).trim()) && words[i + 1] && sameLine(w, words[i + 1]) && /^\d{2}$/.test(String(words[i + 1].text).trim())) {
+      if (/^[$€£¥S§]?\d{1,3}[.,]$/.test(String(w.text).trim()) && words[i + 1] && sameLine(w, words[i + 1]) && /^\d{2}$/.test(String(words[i + 1].text).trim())) {
         p = parsePriceToken(String(w.text).trim() + String(words[i + 1].text).trim());
         if (p) { bbox = union(w.bbox, words[i + 1].bbox); conf = Math.min(conf, words[i + 1].confidence != null ? words[i + 1].confidence : 100); i++; }
       }
       if (!p) p = parsePriceToken(w.text);
       // "$" and number split into two tokens: "$" "12.99"
-      if (!p && /^[$S§]$/.test(cleanToken(w.text) || '') && words[i + 1] && sameLine(w, words[i + 1])) {
+      if (!p && /^[$€£¥S§]$/.test(cleanToken(w.text) || '') && words[i + 1] && sameLine(w, words[i + 1])) {
         var q = parsePriceToken(words[i + 1].text);
         if (q) { p = { cents: q.cents, hasSymbol: true, hasDecimals: q.hasDecimals }; bbox = union(w.bbox, words[i + 1].bbox); conf = Math.min(conf, words[i + 1].confidence != null ? words[i + 1].confidence : 100); i++; }
       }
@@ -157,8 +161,8 @@
       if (bareInt) {
         if (nextSameLine || /^\(/.test(w.text)) continue;
         if (conf < Math.max(minConf, 70)) continue;
-        if (p.cents > 99900) continue;
-      } else if (conf < minConf) continue;
+        if (p.cents > 9900) continue; // bare integers above $99 are codes, not prices
+      } else if (conf < (p.hasSymbol || p.hasDecimals ? Math.min(minConf, 20) : minConf)) continue;
       out.push({ id: out.length, cents: p.cents, text: w.text, bbox: bbox, confidence: conf,
         certainty: (p.hasSymbol || p.hasDecimals) ? 'high' : 'low' });
     }

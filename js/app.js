@@ -5,6 +5,23 @@
   var KEY_S = 'realprice.settings.v1', KEY_T = 'realprice.total.v1';
   var DEFAULT_SETTINGS = { zip: '', rateSource: 'combined', manualRate: '', mode: 'store', tip: 18, thorough: false };
 
+  /* Page directory, so /real-price and /real-price/index.html both resolve assets inside the app. */
+  function appBase() {
+    var url = new URL(location.href);
+    var path = url.pathname;
+    if (!path.endsWith('/')) {
+      var leaf = path.slice(path.lastIndexOf('/') + 1);
+      if (leaf.indexOf('.') !== -1) path = path.slice(0, path.lastIndexOf('/') + 1);
+      else path += '/';
+    }
+    return url.origin + path;
+  }
+  function asset(rel) { return new URL(rel, appBase()).href; }
+  function isIOS() {
+    var ua = navigator.userAgent || '';
+    return /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
   /* ---------- persistence ---------- */
   function load(key, def) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? def : v; } catch (e) { return def; } }
   function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode / quota */ } }
@@ -27,9 +44,10 @@
   /* ---------- header chips / settings ---------- */
   function renderChips() {
     var t = tax();
-    $('chipMode').textContent = settings.mode === 'restaurant' ? '🍽 Menu +' + settings.tip + '%' : '🛒 Store';
-    $('chipTax').textContent = t.source === 'none' ? 'Set ZIP ⚠︎' : 'Tax ' + trimPct(t.percent) + '%' + (t.source === 'manual' ? ' (manual)' : '');
-    $('chipTax').style.borderColor = t.source === 'none' ? '#f59e0b' : '';
+    $('chipMode').textContent = settings.mode === 'restaurant' ? 'Dining · ' + settings.tip + '%' : 'Store';
+    $('chipTax').textContent = t.source === 'none' ? 'Add ZIP' : trimPct(t.percent) + '% tax';
+    $('chipTax').style.color = t.source === 'none' ? '#9a6700' : '';
+    $('chipTax').style.borderColor = t.source === 'none' ? '#fcd214' : '';
   }
   function trimPct(p) { return String(Math.round(p * 1000) / 1000); }
 
@@ -42,9 +60,9 @@
     $('tipBlock').hidden = settings.mode !== 'restaurant';
     $('thorough').checked = !!settings.thorough;
     var t = tax(), el = $('taxInfo');
-    if (t.source === 'manual') el.innerHTML = 'Using your manual rate: <b>' + trimPct(t.percent) + '%</b>' + (t.state ? ' (ZIP is in ' + t.stateName + ')' : '');
-    else if (t.source === 'zip') el.innerHTML = t.stateName + ' — state <b>' + trimPct(t.stateRate) + '%</b>, avg. combined <b>' + trimPct(t.combinedRate) + '%</b>.<br>Using <b>' + trimPct(t.percent) + '%</b>.';
-    else el.innerHTML = settings.zip ? 'ZIP not recognised (US states + DC only). Enter a manual rate instead.' : 'Enter a US ZIP code or a manual rate. Until then tax is treated as 0%.';
+    if (t.source === 'manual') el.innerHTML = 'Using your rate: <b>' + trimPct(t.percent) + '%</b>' + (t.state ? ' · ' + t.stateName : '');
+    else if (t.source === 'zip') el.innerHTML = t.stateName + ' · state <b>' + trimPct(t.stateRate) + '%</b>, combined <b>' + trimPct(t.combinedRate) + '%</b>. Using <b>' + trimPct(t.percent) + '%</b>.';
+    else el.innerHTML = settings.zip ? 'That ZIP is not a US state or DC. Enter your rate instead.' : 'Add a US ZIP, or type the rate you actually pay. Until then tax is 0%.';
   }
   function mark(id, attr, val) {
     Array.prototype.forEach.call($(id).querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute(attr) === val); });
@@ -62,7 +80,7 @@
   $('srcSeg').addEventListener('click', function (e) { var m = e.target.getAttribute('data-src'); if (m) { settings.rateSource = m; saveSettings(); refreshAll(); } });
   $('zip').addEventListener('input', function () { settings.zip = this.value.trim(); saveSettings(); renderChips(); renderSettingsInfoOnly(); renderOverlays(); renderTotals(); });
   $('manualRate').addEventListener('input', function () { settings.manualRate = this.value.trim().replace(',', '.').replace('%', ''); saveSettings(); renderChips(); renderSettingsInfoOnly(); renderOverlays(); renderTotals(); });
-  function renderSettingsInfoOnly() { // don't clobber the input being typed in
+  function renderSettingsInfoOnly() {
     var z = $('zip').value, m = $('manualRate').value; renderSettings(); $('zip').value = z; $('manualRate').value = m;
   }
   $('thorough').addEventListener('change', function () { settings.thorough = this.checked; saveSettings(); });
@@ -92,9 +110,9 @@
       var li = document.createElement('li'); li.dataset.id = it.id;
       var rp = RP.realPrice(it.price * it.qty, t.rate, settings.mode, settings.tip);
       li.innerHTML = '<div class="price"><span>$</span><input class="p" inputmode="decimal" aria-label="Price" value="' + (it.price / 100).toFixed(2) + '"></div>' +
-        '<div class="qtybox"><button data-act="dec" aria-label="Less">−</button><span>×' + it.qty + '</span><button data-act="inc" aria-label="More">+</button></div>' +
-        '<button class="del" data-act="del" aria-label="Remove item">✕</button>' +
-        '<div class="real">Item ' + (idx + 1) + ' → ' + RP.fmt(rp.total) + ' real (' + RP.fmt(rp.tax) + ' tax' + (settings.mode === 'restaurant' ? ', ' + RP.fmt(rp.tip) + ' tip' : '') + ')</div>';
+        '<div class="qtybox"><button type="button" data-act="dec" aria-label="Less">−</button><span>×' + it.qty + '</span><button type="button" data-act="inc" aria-label="More">+</button></div>' +
+        '<button class="del" type="button" data-act="del" aria-label="Remove item">✕</button>' +
+        '<div class="real">Item ' + (idx + 1) + ' · <b>' + RP.fmt(rp.total) + '</b> with tax' + (settings.mode === 'restaurant' ? ' and tip' : '') + '</div>';
       ul.appendChild(li);
     });
   }
@@ -123,7 +141,7 @@
   $('btnTotal').onclick = function () { openSheet('totalPanel'); renderTotals(); };
 
   /* ---------- overlays ---------- */
-  var detections = [];       // [{cents,bbox,certainty,...}] in OCR-canvas coords
+  var detections = [];
   var ocrDims = { w: 0, h: 0 };
   var pressing = false;
   function renderOverlays() {
@@ -135,15 +153,15 @@
     detections.forEach(function (d) {
       var r = RP.realPrice(d.cents, t.rate, settings.mode, settings.tip);
       var bh = (d.bbox.y1 - d.bbox.y0) * cr.scale, bw = (d.bbox.x1 - d.bbox.x0) * cr.scale;
-      var h = Math.max(bh * 1.25, 30), fs = Math.max(13, Math.min(34, bh * 0.75));
-      var w = Math.max(bw * 1.3, 58);
+      var h = Math.max(bh * 1.15, 34), fs = Math.max(14, Math.min(28, bh * 0.7));
+      var w = Math.max(bw * 1.15, 64);
       var cx = cr.x + ((d.bbox.x0 + d.bbox.x1) / 2) * cr.scale, cy = cr.y + ((d.bbox.y0 + d.bbox.y1) / 2) * cr.scale;
       var el = document.createElement('div');
       el.className = 'pill ' + (d.certainty === 'low' ? 'low ' : '') + settings.mode;
       el.style.cssText = 'left:' + (cx - w / 2) + 'px;top:' + (cy - h / 2) + 'px;min-width:' + w + 'px;height:' + h + 'px;font-size:' + fs + 'px';
       el.dataset.cents = d.cents;
       el.innerHTML = '<span class="val">' + RP.fmt(r.total) + '</span>' +
-        '<div class="detail">Shown: ' + RP.fmt(r.base) + '<br>+ tax ' + RP.fmt(r.tax) + (settings.mode === 'restaurant' ? '<br>+ tip ' + RP.fmt(r.tip) + ' (' + settings.tip + '%)' : '') + '<br><b>= ' + RP.fmt(r.total) + '</b><br><i>Long-press to add</i></div>';
+        '<div class="detail">On the tag ' + RP.fmt(r.base) + '<br>Tax ' + RP.fmt(r.tax) + (settings.mode === 'restaurant' ? '<br>Tip ' + RP.fmt(r.tip) + ' (' + settings.tip + '%)' : '') + '<br><b>' + RP.fmt(r.total) + '</b><br>Hold to add</div>';
       attachPress(el, d);
       host.appendChild(el);
     });
@@ -154,11 +172,12 @@
     el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     el.addEventListener('pointerdown', function (e) {
       fired = false; sx = e.clientX; sy = e.clientY; pressing = true; el.classList.add('pressing');
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
       timer = setTimeout(function () {
         fired = true; addItem(d.cents);
         el.classList.remove('pressing'); el.classList.add('added');
-        if (navigator.vibrate) try { navigator.vibrate(40); } catch (e) {}
-        toast('Added ' + RP.fmt(d.cents) + ' to total');
+        if (navigator.vibrate) try { navigator.vibrate(40); } catch (err) {}
+        toast('Added ' + RP.fmt(d.cents));
       }, LONG_MS);
     });
     function end() { clearTimeout(timer); el.classList.remove('pressing'); pressing = false; }
@@ -167,78 +186,211 @@
       if (!wasLong) { var open = el.classList.contains('open'); closeDetails(); if (!open) el.classList.add('open'); }
     });
     el.addEventListener('pointercancel', end);
-    el.addEventListener('pointerleave', end);
-    el.addEventListener('pointermove', function (e) { if (Math.abs(e.clientX - sx) > 12 || Math.abs(e.clientY - sy) > 12) end(); });
+    el.addEventListener('pointermove', function (e) { if (Math.abs(e.clientX - sx) > 14 || Math.abs(e.clientY - sy) > 14) end(); });
   }
   function closeDetails() { Array.prototype.forEach.call(document.querySelectorAll('.pill.open'), function (p) { p.classList.remove('open'); }); }
   window.addEventListener('resize', renderOverlays);
   window.addEventListener('orientationchange', function () { setTimeout(renderOverlays, 250); });
 
   /* ---------- camera ---------- */
-  var stream = null, cameraOK = false, frozen = false, live = false, scanning = false;
-  var video = $('video'), frame = $('frame');
+  var stream = null, cameraOK = false, viewingPhoto = false, live = false, scanning = false, liveGen = 0;
+  var video = $('video'), frame = $('frame'), ocrCanvas = $('ocr');
   function setMsg(m) { var el = $('stageMsg'); el.textContent = m || ''; el.hidden = !m; }
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setMsg('Camera is not available in this browser or context (needs HTTPS or localhost).\nTap “📷 Photo” to use a picture instead.'); return false;
+      setMsg('Camera is not available here.\nUse Photo to pick a picture.'); return false;
     }
-    try {
-      stopCamera();
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-      video.srcObject = stream; await video.play().catch(function () {});
-      cameraOK = true; setMsg(''); video.hidden = false; return true;
-    } catch (err) {
+    var attempts = [
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+      { video: { facingMode: 'environment' }, audio: false },
+      { video: true, audio: false }
+    ];
+    var err = null;
+    stopCamera();
+    for (var i = 0; i < attempts.length; i++) {
+      try { stream = await navigator.mediaDevices.getUserMedia(attempts[i]); err = null; break; }
+      catch (e) { err = e; stream = null; }
+    }
+    if (!stream) {
       cameraOK = false;
-      var why = err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : err && err.name === 'NotFoundError' ? 'No camera found.' : 'Camera could not start (' + (err && err.name || 'error') + ').';
-      setMsg(why + '\nTap “📷 Photo” to pick or take a picture instead.'); return false;
+      var why = err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : err && err.name === 'NotFoundError' ? 'No camera found.' : 'Camera could not start.';
+      setMsg(why + '\nUse Photo to pick a picture.'); return false;
     }
+    video.playsInline = true; video.muted = true;
+    video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
+    video.srcObject = stream;
+    try { await video.play(); } catch (e) {}
+    var track = stream.getVideoTracks()[0];
+    if (track && track.applyConstraints && video.videoWidth && video.videoWidth < 1280) {
+      try { await track.applyConstraints({ width: { ideal: 1920 }, height: { ideal: 1080 } }); } catch (e) {}
+    }
+    cameraOK = true; setMsg(''); video.hidden = false; return true;
   }
   function stopCamera() { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
 
-  function showFrozen() { frozen = true; frame.hidden = false; video.hidden = true; $('btnScan').textContent = '↺ Resume'; setLive(false); }
-  async function resume() {
-    frozen = false; frame.hidden = true; detections = []; renderOverlays(); $('btnScan').textContent = 'Scan';
-    if (cameraOK && stream) { video.hidden = false; try { await video.play(); } catch (e) {} } else { video.hidden = false; await startCamera(); }
+  function nextVideoFrame() {
+    return new Promise(function (resolve) {
+      if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(function () { resolve(); });
+      else requestAnimationFrame(function () { resolve(); });
+    });
   }
 
   /* ---------- OCR ---------- */
   var workerP = null;
-  function abs(p) { return new URL(p, location.href).href; }
-  function getWorker() {
-    if (workerP) return workerP;
-    if (typeof Tesseract === 'undefined') return Promise.reject(new Error('Tesseract failed to load'));
-    busy(true, 'Loading text reader (first time ~10 MB)…');
-    workerP = Tesseract.createWorker('eng', 1, {
-      workerPath: abs('vendor/tesseract/worker.min.js'),
-      corePath: abs('vendor/tesseract/core/'),
-      langPath: abs('vendor/tesseract/lang/'),
+  var ocrState = 'loading';
+  function setOcrStatus(state, text) {
+    ocrState = state;
+    var el = $('ocrStatus');
+    el.dataset.state = state;
+    el.textContent = text || '';
+    el.hidden = state === 'ready';
+  }
+  function loadErrorText(e) {
+    var m = (e && (e.message || e.toString())) || 'unknown error';
+    m = String(m).replace(/\s+/g, ' ').slice(0, 110);
+    return 'Text reader didn’t load — ' + m + '. Tap to retry.';
+  }
+  function onLogger(m) {
+    if (!m || !m.status) return;
+    var friendly = {
+      'loading tesseract core': 'Loading reader…',
+      'initializing tesseract': 'Starting reader…',
+      'loading language traineddata': 'Loading language…',
+      'initializing api': 'Preparing reader…'
+    };
+    if (friendly[m.status]) setOcrStatus('loading', friendly[m.status]);
+    else if (m.status === 'recognizing text' && !live) setOcrStatus('loading', 'Reading… ' + Math.round((m.progress || 0) * 100) + '%');
+  }
+  function coreList() {
+    var lstm = asset('vendor/tesseract/core/tesseract-core-lstm.wasm.js');
+    var auto = asset('vendor/tesseract/core/');
+    /* iOS often reports SIMD, then fails to compile the SIMD core. Start with the plain LSTM build. */
+    return isIOS() ? [lstm, auto] : [auto, lstm];
+  }
+  function createWith(corePath) {
+    console.info('OCR core', corePath);
+    return Tesseract.createWorker('eng', 1, {
+      workerPath: asset('vendor/tesseract/worker.min.js'),
+      corePath: corePath,
+      langPath: asset('vendor/tesseract/lang/'),
       gzip: true,
-      logger: function (m) { if (m && m.status === 'recognizing text') $('busyText').textContent = 'Reading… ' + Math.round((m.progress || 0) * 100) + '%'; }
+      workerBlobURL: false,
+      cacheMethod: 'none',
+      logger: onLogger
     }).then(async function (w) {
       await w.setParameters({ preserve_interword_spaces: '1' });
       return w;
-    }).catch(function (e) { workerP = null; throw e; });
+    });
+  }
+  function getWorker() {
+    if (workerP) return workerP;
+    if (typeof Tesseract === 'undefined') return Promise.reject(new Error('Tesseract script failed to load'));
+    setOcrStatus('loading', 'Loading text reader…');
+    var cores = coreList();
+    workerP = createWith(cores[0]).catch(function (e1) {
+      console.warn('OCR core failed, trying fallback', e1);
+      setOcrStatus('loading', 'Retrying reader…');
+      return createWith(cores[1]);
+    }).catch(function (e2) { workerP = null; throw e2; });
     return workerP;
   }
-  function busy(on, text) { $('busy').hidden = !on; if (text) $('busyText').textContent = text; }
+  $('ocrStatus').onclick = function () {
+    if (ocrState !== 'error') return;
+    workerP = null;
+    getWorker().then(function () {
+      setOcrStatus('ready', '');
+      if (cameraOK && !viewingPhoto) { live = true; liveLoop(); }
+    }).catch(function (e) { setOcrStatus('error', loadErrorText(e)); });
+  };
 
-  // draw any image source onto the OCR canvas at a good working size
-  function drawToCanvas(src, sw, sh) {
-    // Tesseract misses tiny glyphs (esp. lone digits like "8"), so small images are upscaled to ~1600px on the long edge (huge ones capped at 2000).
-    var long = Math.max(sw, sh), scale = long > 2000 ? 2000 / long : (long < 1600 ? Math.min(2.5, 1600 / long) : 1);
-    if (window.RP_LONG) scale = window.RP_LONG / long;
-    frame.width = Math.round(sw * scale); frame.height = Math.round(sh * scale);
-    var ctx = frame.getContext('2d'); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0, frame.width, frame.height);
+  /* Draw the camera (or a photo) at the stream's own resolution, capped so iOS
+     can still allocate the bitmap next to the wasm heap, then stretch contrast. */
+  var LIVE_LONG = 1920; // native getUserMedia frame on iPhone; larger bitmaps hurt digit boxes
+  var PHOTO_LONG = 1920;
+  function fitSize(sw, sh, cap) {
+    var long = Math.max(sw, sh);
+    var scale = long > cap ? cap / long : (long < 1280 ? Math.min(2, 1600 / long) : 1);
+    return { w: Math.max(2, Math.round(sw * scale)), h: Math.max(2, Math.round(sh * scale)), scale: scale };
+  }
+  function drawSource(src, sw, sh, cap) {
+    var size = fitSize(sw, sh, cap);
+    var ctx = frame.getContext('2d', { willReadFrequently: true, alpha: false });
+    frame.width = size.w; frame.height = size.h;
+    ctx.imageSmoothingEnabled = size.scale < 1;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, size.w, size.h);
+    return size;
+  }
+  function enhance(ctx) {
+    var w = ctx.canvas.width, h = ctx.canvas.height;
+    var img;
+    try { img = ctx.getImageData(0, 0, w, h); }
+    catch (e) { return false; }
+    var d = img.data;
+    if (!d || d.length < 16) return false;
+    var hist = new Uint32Array(256);
+    var step = 4 * Math.max(1, Math.floor((w * h) / 20000));
+    var sum = 0, n = 0;
+    for (var i = 0; i < d.length; i += step) {
+      var y = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+      hist[y]++; sum += y; n++;
+    }
+    if (!n || sum / n < 10) return false;
+    var total = 0; for (var b = 0; b < 256; b++) total += hist[b];
+    var acc = 0, lo = 0, hi = 255;
+    for (var b = 0; b < 256; b++) { acc += hist[b]; if (acc >= total * 0.02) { lo = b; break; } }
+    acc = 0;
+    for (var b = 255; b >= 0; b--) { acc += hist[b]; if (acc >= total * 0.02) { hi = b; break; } }
+    if (hi < lo + 12) hi = Math.min(255, lo + 12);
+    var span = hi - lo;
+    for (var p = 0; p < d.length; p += 4) {
+      var y = (d[p] * 77 + d[p + 1] * 150 + d[p + 2] * 29) >> 8;
+      var v = ((y - lo) * 255) / span;
+      if (v < 0) v = 0; else if (v > 255) v = 255;
+      d[p] = d[p + 1] = d[p + 2] = v;
+    }
+    var octx = ocrCanvas.getContext('2d', { willReadFrequently: true, alpha: false });
+    ocrCanvas.width = w; ocrCanvas.height = h;
+    octx.putImageData(img, 0, 0);
+    ocrDims = { w: w, h: h };
+    return true;
+  }
+  function canvasToBlob(canvas) {
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      function finish(blob) {
+        if (settled) return;
+        settled = true;
+        if (blob && blob.size > 80) resolve(blob);
+        else reject(new Error('Could not read the camera picture'));
+      }
+      try {
+        canvas.toBlob(function (blob) { finish(blob); }, 'image/jpeg', 0.92);
+      } catch (e) { settled = true; reject(e); return; }
+      setTimeout(function () {
+        if (settled) return;
+        try {
+          var url = canvas.toDataURL('image/jpeg', 0.92);
+          var bin = atob(url.split(',')[1]);
+          var arr = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          finish(new Blob([arr], { type: 'image/jpeg' }));
+        } catch (e) { settled = true; reject(e); }
+      }, 1200);
+    });
   }
 
-  // Tesseract's layout analysis is image-dependent: "auto" (PSM 3) works best on tags/shelves, "sparse" (PSM 11) on menus.
-  // Default = auto pass, plus a sparse pass when the first finds nothing (or always, if "Thorough scan" is on).
-  async function ocrPass(w, psm) {
-    await w.setParameters({ tessedit_pageseg_mode: String(psm) });
-    var res = await w.recognize(frame, {}, { blocks: true, text: true });
+  async function ocrPass(w, psm, whitelist) {
+    await w.setParameters({
+      tessedit_pageseg_mode: String(psm),
+      tessedit_char_whitelist: whitelist,
+      preserve_interword_spaces: '1'
+    });
+    var blob = await canvasToBlob(ocrCanvas);
+    var res = await w.recognize(blob, {}, { blocks: true, text: true });
     return { words: RP.wordsFromOcr(res.data), text: res.data.text };
   }
-  function mergeDetections(a, b) { // add b's detections that don't overlap one already in a
+  function mergeDetections(a, b) {
     b.forEach(function (d) {
       var cx = (d.bbox.x0 + d.bbox.x1) / 2, cy = (d.bbox.y0 + d.bbox.y1) / 2;
       var dup = a.some(function (e) { return cx >= e.bbox.x0 - 4 && cx <= e.bbox.x1 + 4 && cy >= e.bbox.y0 - 4 && cy <= e.bbox.y1 + 4; });
@@ -248,85 +400,120 @@
   }
   async function recognizeCanvas(quick) {
     var w = await getWorker();
-    busy(true, 'Reading…');
-    var first = await ocrPass(w, window.RP_PSM || 3);
-    var found = RP.detectPrices(first.words), allWords = first.words, text = first.text;
-    if (!window.RP_PSM && (settings.thorough || !found.length) && !quick) {
-      busy(true, 'Reading (second pass)…');
-      var second = await ocrPass(w, 11);
+    if (!quick) setOcrStatus('loading', 'Reading…');
+    var psm = window.RP_PSM || 11;
+    var whitelist = '0123456789.$€£';
+    var first = await ocrPass(w, psm, whitelist);
+    var allWords = first.words;
+    var text = first.text;
+    var found = RP.detectPrices(allWords);
+    if (!window.RP_PSM && (!quick || settings.thorough || !found.length)) {
+      setOcrStatus('loading', 'Reading again…');
+      var second = await ocrPass(w, 3, '');
       found = mergeDetections(found, RP.detectPrices(second.words));
       allWords = allWords.concat(second.words); text += '\n--- pass 2 ---\n' + second.text;
     }
     found.forEach(function (d, i) { d.id = i; });
-    ocrDims = { w: frame.width, h: frame.height };
     detections = found;
     api.lastWords = allWords; api.lastText = text;
     renderOverlays();
+    if (ocrState !== 'error') setOcrStatus('ready', '');
     return found;
   }
 
-  async function scanOnce() {
+  async function scanOnce(quick) {
     if (scanning) return; scanning = true;
     try {
-      if (!video.videoWidth) { toast('Camera not ready'); return; }
-      drawToCanvas(video, video.videoWidth, video.videoHeight);
-      if (!live) showFrozen();
-      var found = await recognizeCanvas(live);
-      if (!live) toast(found.length ? found.length + ' price' + (found.length > 1 ? 's' : '') + ' found' : 'No prices found — try more light or move closer');
-    } catch (e) { console.error(e); toast('Scan failed: ' + (e && e.message || e)); }
-    finally { busy(false); scanning = false; }
+      if (quick) await nextVideoFrame();
+      if (!video.videoWidth) { if (!quick) setOcrStatus('error', 'Camera has no picture yet. Tap to retry.'); return; }
+      drawSource(video, video.videoWidth, video.videoHeight, LIVE_LONG);
+      var ctx = frame.getContext('2d', { willReadFrequently: true });
+      if (!enhance(ctx)) { if (!quick) setOcrStatus('error', 'That frame was blank. Hold steady and tap to retry.'); return; }
+      await recognizeCanvas(!!quick);
+    } catch (e) {
+      console.error(e);
+      if (!workerP) { live = false; setOcrStatus('error', loadErrorText(e)); }
+      else setOcrStatus('error', 'Could not read prices — ' + String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 80));
+    } finally { scanning = false; }
+  }
+
+  async function liveLoop() {
+    var gen = ++liveGen;
+    while (live && gen === liveGen) {
+      if (!document.hidden && !pressing && !viewingPhoto && video.videoWidth) await scanOnce(true);
+      await new Promise(function (r) { setTimeout(r, pressing ? 60 : 280); });
+    }
   }
 
   async function loadFile(file) {
     if (!file) return;
+    live = false; viewingPhoto = true;
+    $('btnPhoto').textContent = 'Camera';
     try {
-      busy(true, 'Opening photo…');
+      setOcrStatus('loading', 'Opening photo…');
       var bmp = await decodeImage(file);
-      drawToCanvas(bmp.src, bmp.w, bmp.h);
-      showFrozen(); setMsg(''); detections = []; renderOverlays();
-      var found = await recognizeCanvas();
-      toast(found.length ? found.length + ' price' + (found.length > 1 ? 's' : '') + ' found' : 'No prices found in that photo');
-    } catch (e) { console.error(e); toast('Could not read photo: ' + (e && e.message || e)); }
-    finally { busy(false); }
+      drawSource(bmp.src, bmp.w, bmp.h, PHOTO_LONG);
+      if (bmp.src.close) try { bmp.src.close(); } catch (e) {}
+      frame.classList.add('show'); video.hidden = true; setMsg('');
+      var ctx = frame.getContext('2d', { willReadFrequently: true });
+      if (!enhance(ctx)) { setOcrStatus('error', 'Could not read that photo. Tap to retry.'); return; }
+      detections = []; renderOverlays();
+      var found = await recognizeCanvas(false);
+      toast(found.length ? found.length + ' price' + (found.length > 1 ? 's' : '') : 'No prices in that photo');
+    } catch (e) {
+      console.error(e);
+      if (!workerP) setOcrStatus('error', loadErrorText(e));
+      else { setOcrStatus('ready', ''); toast('Could not read that photo'); }
+    }
   }
   function decodeImage(file) {
     return new Promise(function (resolve, reject) {
-      if (window.createImageBitmap) {
-        createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (b) { resolve({ src: b, w: b.width, h: b.height }); }, fallback);
-      } else fallback();
-      function fallback() {
+      function viaImage() {
         var url = URL.createObjectURL(file), img = new Image();
         img.onload = function () { resolve({ src: img, w: img.naturalWidth, h: img.naturalHeight }); URL.revokeObjectURL(url); };
-        img.onerror = function () { reject(new Error('unsupported image')); };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('unsupported image')); };
         img.src = url;
       }
+      if (window.createImageBitmap) {
+        var opts = {};
+        try { opts = { imageOrientation: 'from-image' }; } catch (e) {}
+        createImageBitmap(file, opts).then(function (b) { resolve({ src: b, w: b.width, h: b.height }); }, viaImage);
+      } else viaImage();
     });
   }
-  $('fileInput').addEventListener('change', function () { var f = this.files[0]; this.value = ''; loadFile(f); });
-
-  $('btnScan').onclick = function () { frozen ? resume() : scanOnce(); };
-  function setLive(on) { live = on; $('btnLive').textContent = 'Live: ' + (on ? 'on' : 'off'); $('btnLive').setAttribute('aria-pressed', String(on)); if (on) liveLoop(); }
-  $('btnLive').onclick = async function () { if (frozen) await resume(); if (!cameraOK) return toast('Camera not available'); setLive(!live); };
-  async function liveLoop() {
-    while (live) { if (!document.hidden && !pressing) await scanOnce(); await new Promise(function (r) { setTimeout(r, 400); }); }
+  $('fileInput').addEventListener('change', function () { var f = this.files && this.files[0]; this.value = ''; if (f) loadFile(f); });
+  $('btnPhoto').onclick = function () { if (viewingPhoto) resumeCamera(); else $('fileInput').click(); };
+  async function resumeCamera() {
+    viewingPhoto = false; frame.classList.remove('show'); $('btnPhoto').textContent = 'Photo';
+    detections = []; renderOverlays(); video.hidden = false;
+    var ok = cameraOK && stream;
+    if (!ok) ok = await startCamera();
+    else { try { await video.play(); } catch (e) {} }
+    if (ok) { setMsg(''); live = true; liveLoop(); }
   }
-  document.addEventListener('visibilitychange', function () { if (document.hidden) { if (live) setLive(false); } });
   $('stage').addEventListener('pointerdown', function (e) { if (!e.target.closest('.pill')) closeDetails(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) live = false;
+    else if (cameraOK && !viewingPhoto) { live = true; liveLoop(); }
+  });
 
   /* ---------- service worker ---------- */
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    var hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadController) location.reload(); });
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW failed', e); }); });
   }
 
   /* ---------- test/debug hook ---------- */
   var api = window.RealPriceApp = {
     get settings() { return settings; }, get items() { return items; }, get detections() { return detections; },
-    loadFile: loadFile, scanOnce: scanOnce, refreshAll: refreshAll, lastWords: null, lastText: ''
+    loadFile: loadFile, scanOnce: scanOnce, refreshAll: refreshAll, appBase: appBase, asset: asset, lastWords: null, lastText: ''
   };
 
   /* ---------- boot ---------- */
   refreshAll();
-  if (!settings.zip && settings.manualRate === '') { /* first run: nudge to settings */ setTimeout(function () { toast('Set your ZIP code in ⚙︎ for accurate tax'); }, 800); }
-  startCamera();
+  if (!settings.zip && settings.manualRate === '') setTimeout(function () { toast('Add your ZIP for a real tax rate'); }, 900);
+  getWorker().then(function () { setOcrStatus('ready', ''); }).catch(function (e) { setOcrStatus('error', loadErrorText(e)); });
+  startCamera().then(function (ok) { if (ok && !viewingPhoto) { live = true; liveLoop(); } });
   window.addEventListener('pagehide', stopCamera);
 })();
