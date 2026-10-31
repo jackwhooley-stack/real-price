@@ -47,10 +47,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outl
   background: var(--card);
   border-bottom: 1px solid var(--line-soft);
 }
-.title-row { display: flex; align-items: center; gap: 8px; min-height: 32px; }
-.brand { display: flex; align-items: center; gap: 8px; margin-right: auto; min-height: 44px; }
-.wordmark { font-weight: 600; font-size: 17px; letter-spacing: -0.02em; line-height: 1; }
-.logo { width: 32px; height: 32px; display: block; flex: none; border-radius: var(--r); }
+.title-row { display: flex; align-items: center; gap: 8px; }
+.brand { display: flex; align-items: center; margin-right: auto; }
+.logo { width: 112px; height: 112px; display: block; flex: none; border-radius: 22%; }
 .toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .loc {
   flex: none;
