@@ -38,7 +38,8 @@ button, input { font: inherit; color: inherit; }
   padding: calc(10px + var(--safe-t)) 14px 8px;
   background: var(--bg);
 }
-.brand { font-weight: 800; font-size: 22px; letter-spacing: -0.03em; margin-right: auto; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 22px; letter-spacing: -0.03em; margin-right: auto; }
+.logo { width: 32px; height: 32px; display: block; flex: none; }
 .chip {
   border: 1px solid var(--line); background: var(--card); color: var(--blue);
   border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 700;
