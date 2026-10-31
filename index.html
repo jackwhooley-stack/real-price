@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Real Price">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Real Price</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">Real Price</div>
+  <button id="chipMode" class="chip" aria-label="Toggle store or restaurant mode">Store</button>
+  <button id="chipTax" class="chip" aria-label="Open settings">Tax —</button>
+  <button id="btnSettings" class="icon-btn" aria-label="Settings">⚙︎</button>
+</header>
+
+<main id="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="frame" hidden></canvas>
+  <div id="overlays"></div>
+  <div id="stageMsg" class="stage-msg">Starting camera…</div>
+  <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">Reading…</span></div>
+</main>
+
+<footer id="controls">
+  <label class="btn secondary" for="fileInput" id="btnUpload">📷 Photo
+    <input id="fileInput" type="file" accept="image/*" hidden>
+  </label>
+  <button id="btnScan" class="btn primary">Scan</button>
+  <button id="btnLive" class="btn secondary" aria-pressed="false">Live: off</button>
+  <button id="btnTotal" class="btn total">Total <b id="totalBadge">$0.00</b><span id="totalCount" class="count">0</span></button>
+</footer>
+<div id="hint" class="hint">Tap Scan, then <b>long-press</b> a price to add it to your total. Tap a price for the breakdown.</div>
+
+<!-- Settings sheet -->
+<section id="settings" class="sheet" hidden aria-label="Settings">
+  <div class="sheet-body">
+    <div class="sheet-head"><h2>Settings</h2><button class="icon-btn" data-close>✕</button></div>
+
+    <h3>Mode</h3>
+    <div class="seg" id="modeSeg">
+      <button data-mode="store">🛒 Store (tax)</button>
+      <button data-mode="restaurant">🍽 Restaurant (tax + tip)</button>
+    </div>
+
+    <div id="tipBlock">
+      <h3>Tip</h3>
+      <div class="seg" id="tipSeg">
+        <button data-tip="15">15%</button><button data-tip="18">18%</button>
+        <button data-tip="20">20%</button><button data-tip="25">25%</button>
+      </div>
+      <p class="note">Tip is calculated on the pre-tax price.</p>
+    </div>
+
+    <h3>Sales tax</h3>
+    <label class="field">US ZIP code
+      <input id="zip" inputmode="numeric" autocomplete="postal-code" maxlength="10" placeholder="e.g. 94103">
+    </label>
+    <div class="seg" id="srcSeg">
+      <button data-src="combined">State + avg. local</button>
+      <button data-src="state">State rate only</button>
+    </div>
+    <label class="field">Manual override (% — wins over ZIP)
+      <input id="manualRate" inputmode="decimal" placeholder="e.g. 8.625">
+    </label>
+    <div id="taxInfo" class="taxinfo"></div>
+    <p class="note">Rates are state-level plus a population-weighted <i>average</i> local rate (Tax Foundation, midyear 2026). Your city/county/district rate can differ, and some places tax restaurant meals or groceries differently. For an exact figure, type your local rate in the override field.</p>
+
+    <h3>Scanning</h3>
+    <label class="check"><input type="checkbox" id="thorough"> Thorough scan (two OCR passes — slower, finds more)</label>
+
+    <h3>Data</h3>
+    <button id="btnClearAll" class="btn danger small">Reset all settings &amp; total</button>
+    <p class="note">Everything stays on this device (localStorage). OCR runs on-device; no images are uploaded.</p>
+    <button class="btn primary wide" data-close>Done</button>
+  </div>
+</section>
+
+<!-- Total sheet -->
+<section id="totalPanel" class="sheet" hidden aria-label="Running total">
+  <div class="sheet-body">
+    <div class="sheet-head"><h2>Running total</h2><button class="icon-btn" data-close>✕</button></div>
+    <ul id="itemList" class="items"></ul>
+    <div id="emptyMsg" class="note" hidden>No items yet. Long-press a price on the camera view to add it.</div>
+    <form id="addForm" class="addrow">
+      <input id="addPrice" inputmode="decimal" placeholder="Add price manually, e.g. 7.50" aria-label="Manual price">
+      <button class="btn secondary small" type="submit">Add</button>
+    </form>
+    <dl class="sums">
+      <div><dt>Subtotal</dt><dd id="sumSub">$0.00</dd></div>
+      <div><dt id="sumTaxLabel">Tax</dt><dd id="sumTax">$0.00</dd></div>
+      <div id="sumTipRow"><dt id="sumTipLabel">Tip</dt><dd id="sumTip">$0.00</dd></div>
+      <div class="grand"><dt>Total</dt><dd id="sumGrand">$0.00</dd></div>
+    </dl>
+    <div class="row">
+      <button id="btnClear" class="btn danger">Clear all</button>
+      <button class="btn primary" data-close>Close</button>
+    </div>
+  </div>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="vendor/tesseract/tesseract.min.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
